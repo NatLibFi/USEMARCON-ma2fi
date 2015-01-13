@@ -1,0 +1,19 @@
+videojay.tbl
+
+b | a
+k | b
+a | d
+i | e
+m | f
+c | g
+e | h
+p | j
+q | k
+g | m
+h | n
+o | o
+d | z
+f | z
+j | z
+z | z
+#DEFAULT | 0X20

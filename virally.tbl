@@ -1,0 +1,6 @@
+virally.tbl
+
+o | 0X31
+l | 0X32
+f | 0X31 // Tämä toivottu BTJ:llä näin, lisätty 9.11.2009 NJ
+#DEFAULT | 0X20

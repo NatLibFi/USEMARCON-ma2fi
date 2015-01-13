@@ -1,0 +1,12 @@
+muslajiy.tbl
+//nn ja zz eivät tässä käytössä MARC 21:ssä, meillä molemmissa ||, taidemusiikkia ja lastenmusiikkia ei saa koodattua enää Finmarciin 21.4./UI
+
+z z | 0x20 a
+g m | 0x20 b
+f m | 0x20 c
+r c | 0x20 d
+j z | 0x20 e
+p p | 0x20 f
+m p | 0x20 g
+n n | 0x20 h
+#DEFAULT | 0X20 0X20

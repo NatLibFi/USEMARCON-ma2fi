@@ -1,0 +1,12 @@
+kielikoodit.tbl
+
+
+k r l    | k r j
+s m n    | s m i
+s m e    | s m i
+s m a    | s m i
+s m s    | s m i
+s m j    | s m i
+h r v    | s c r
+s r p    | s c c
+#DEFAULT | COPY

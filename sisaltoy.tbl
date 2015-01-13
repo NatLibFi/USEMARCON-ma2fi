@@ -1,0 +1,18 @@
+sisaltoy.tbl
+
+a | c
+b | a
+c | b
+d | e
+e | f
+i | b
+k | r
+m | l
+r | g
+q | q
+s | i
+z | z
+y | h
+0x35 | k
+0x36 | s
+#DEFAULT | 0X20

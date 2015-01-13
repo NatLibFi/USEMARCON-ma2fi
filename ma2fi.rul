@@ -1,0 +1,1423 @@
+﻿MARC21 bibliographic to Finmarc (Unicode Supported)
+Versio 2.4.2012 - KK / Päivitetty 14.7.2014 - KK/TV
+
+#define macro SetIndFrom245np | If (Exists(@245(1)$n) Or Exists(@245(1)$p)) Then '1' Else ' '
+
+#define macro PadZero       | RegReplace('^.*?(\\d+).*?\$', '\\1'); While (Len(S) < 4) { '0' + S; }
+
+#define macro NameCheck     | If (RegFind($a, '[^,]\\s[^,]+\\, ') >= 0) Or If ((Len($a) > 10) And (RegFind($a,  '[^,]-[^,]+\\, ') >= 0)) Then '2' Else S
+
+#define macro YearOfDeath   | If (RegFind('\\d[-]\\d') >= 0) Then Val(Between(6,9)); If S < 1900 Then ($d);
+
+// Whether function code is abbreviated
+#define macro FunctionCode  | If (Len(S) > 5 And (RegFind('[aeiouyäöåAEIOUYÄÖÅ]\\.\$') >= 0)) Or (Len(S) > 7) Delete ('.', At Ending)
+
+// Whether field 563 is removed from the resulting records (0=no, 1=yes)
+#define macro remove_563    | 1
+          
+#define macro PartOrWhole   | If (Exists(@245(1)$n) Or Exists(@245(1)$p)) And If ((RegFind($q, '[Kk]oko(.*)') < 0) And (RegFind($c, '[Kk]oko(.*)') < 0)) Then '1' \
+Else If ((@RegFind(020$c, '[Kk]oko(.*)') >= 0) Or (@RegFind(020$q, '[Kk]oko(.*)') >= 0) Or (@RegFind(020(2)$c, '[Kk]oko(.*)') >= 0) \
+Or (@RegFind(020(2)$q, '[Kk]oko(.*)') >= 0) Or (@RegFind(020(3)$c, '[Kk]oko(.*)') >= 0) Or (@RegFind(020(3)$q, '[Kk]oko(.*)') >= 0) Or \
+(@RegFind(020(4)$c, '[Kk]oko(.*)') >= 0) Or (@RegFind(020(4)$q, '[Kk]oko(.*)') >= 0)) And If ((RegFind($q, '[Kk]oko(.*)') < 0) And (RegFind($c, '[Kk]oko(.*)') < 0)) Then '1' Else S
+
+000/1-5/   | 000/1-5/       | S
+000/6/     | 000/6/         | 'n'
+000/7/     | 000/7/         | Table ('aineisty.tbl')
+000/8/     | 000/8/         | Table ('kohdey.tbl')
+000/9/     | 000/9/         | ' '
+000/10/    | 000/10/        | If (Len('\C3\A4') = 1) Then 'a' Else ' ' // Unicode check hack
+000/11-17/ | 000/11-17/     | S
+000/18/    | 000/18/        | '3'
+000/19/    | 000/19/        | '3'
+000/21-24/ | 000/21-24/     | S
+
+001        | 001            | S
+
+008/1-6/   | 008/1-6/       | S
+008/7/     | 008/7/         | Table ('aikaindy.tbl')
+008/8-15/  | 008/8-15/      | S
+008/16-18/ | 008/16-18/     | Table ('maakoodity.tbl')
+008/36-38/ | 008/36-38/     | Table ('kielikoodit.tbl')
+008/39-40/ | 008/39-40/     | '  '
+
+006/1/     | 006/1/         | Table ('006ainy.tbl')
+
+#if (@006/1/='a' Or @006/1/='t' Or @006/1/='p' Or @006/1/='o')
+006/6/     | 006/6/         | Table ('kohdery.tbl')
+006/7/     | 006/7/         | Table ('ilmiasuy.tbl')
+006/8-11/  | 006/8-11/      | Table ('sisaltoy.tbl')
+006/12/    | 006/12/        | Table ('virally.tbl')
+006/13/    | 006/13/        | Table ('kokjulky.tbl')
+006/14/    | 006/14/        | Table ('juhljulky.tbl')
+006/15/    | 006/15/        | Table ('indeksiy.tbl')
+006/17/    | 006/17/        | Table ('kirjally.tbl')
+006/18/    | 006/18/        | Table ('elamaky.tbl')
+#endif
+
+#if (@006/1/='m')
+006/6/     | 006/6/         | Table ('kohdery.tbl')
+006/10  /  | 006/5/         | S
+006/12/    | 006/12/        | Table ('virally.tbl')
+#endif
+
+#if (@006/1/='s')
+006/2/     | 006/2/         | Table ('ilmtihy.tbl')
+006/5/     | 006/5/         | Table ('kaustyyy.tbl')
+006/7/     | 006/7/         | Table ('ilmkausy.tbl')
+006/8-11/  | 006/8-11/      | Table ('sisalkay.tbl')
+006/12/    | 006/12/        | Table ('virally.tbl')
+006/13/    | 006/13/        | Table ('kokjulky.tbl')
+006/17/    | 006/17/        | Table ('kirjjary.tbl')
+#endif
+
+#if (@006/1/='i' Or @006/1/='j')
+006/2-3/   | 006/3-4/       | Table ('muslajiy.tbl')
+006/6/     | 006/6/         | Table ('kohdery.tbl')
+006/7/     | 006/7/         | Table ('aanilmiy.tbl')
+006/8/     | 006/9/         | Table ('liiteaiy.tbl')
+#endif
+006/14/    | 006/17/        | If (@006/1/='i') Then Table ('kirjmusy.tbl')
+
+#if (@006/1/='c' Or @006/1/='d')
+006/2-3/   | 006/3-4/       | Table ('muslajiy.tbl')
+006/4/     | 006/5/         | Table ('nuottyyy.tbl')
+006/5      | 006/5/         | If (S = ' ') Then ' ' Else 'i'
+006/6/     | 006/6/         | Table ('kohdery.tbl')
+006/7/     | 006/7/         | Table ('musilmiy.tbl')
+#endif
+006/8/     | 006/9/         | If (@006/1/='c') Then Table ('liiteaiy.tbl')
+
+#if (@006/1/='e' Or @006/1/='f')
+006/2-4/   | 006/2-4/       | Table ('korkeustiedy.tbl')
+006/6-7/   | 006/6-7/       | Table ('projektioy.tbl')
+006/9/     | 006/9/         | Table ('karttyyy.tbl')
+006/12/    | 006/12/        | Table ('virally.tbl')
+006/15/    | 006/15/        | Table ('sijhakey.tbl')
+#endif
+
+006/6/     | 006/6/         | Table ('kohdery.tbl')
+006/17/    | 006/7/         | If (@006/1/='g' Or @006/1/='k' Or @006/1/='r')Then Table ('visilmy.tbl')
+
+007        | <X07           | S // Viivästetään, että saadaan 008 käsiteltyä
+
+#if (@X07/1/='s')  ///Äänite
+X07/2/     | 008(1)/24/     | If (@X07/11/ = 'm' And @X07/14/ = 'd') Then 'r' Else Table ('aanilmiy.tbl')
+X07/4/     | 008(1)/29/     | S
+X07/5/     | 008(1)/30/     | S
+X07/7/     | 008(1)/31/     | Table ('aanitkoy.tbl')
+X07/8/     | 008(1)/32/     | S
+X07/9/     | 008(1)/35/     | S
+X07/11/    | 008(1)/33/     | S
+X07/10/    | 008(1)/36/     | S
+X07/13/    | 008(1)/37/     | S
+X07/14/    | 008(1)/27/     | S
+#endif
+
+#if (@X07/1/='c')
+X07/2/     | 008(1)/24/     | Table ('elektrilmi.tbl')
+#endif
+
+#if (@X07/1/='a')
+X07/4/     | 008(1)/30/     | Table ('varitysy.tbl')
+X07/5/     | 008(1)/33/     | Table ('karvalmy.tbl')
+X07/7/     | 008(1)/27/     | Table ('valmmeny.tbl')
+#endif
+
+#if (@X07/1/='m')
+X07/4/     | 008(1)/30/     | S
+X07/5/     | 008(1)/34/     | S
+X07/7/     | 008(1)/35/     | S
+X07/8/     | 008(1)/32/     | S
+X07/11/    | 008(1)/37/     | S
+X07/12/    | 008(1)/36/     | Table ('filmisuy.tbl')
+X07/13/    | 008(1)/22/     | Table ('filmpohy.tbl')
+X07/17/    | 008(1)/25/     | Table ('vistaydy.tbl')
+#endif
+
+#if (@X07/1/='h')
+X07/4/     | 008(1)/37/     | S
+X07/5/     | 008(1)/32/     | S
+X07/6/     | 008(1)/31/     | S
+X07/10/    | 008(1)/30/     | S
+X07/11/    | 008(1)/33/     | S
+X07/13/    | 008(1)/22/     | Table ('filmpohy.tbl')
+#endif
+
+#if (@X07/1/='v')
+X07/4/     | 008(1)/30/     | S
+X07/5/     | 008(1)/27/     | Table ('videojay.tbl')
+X07/7/     | 008(1)/35/     | S
+X07/8/     | 008(1)/32/     | S
+#endif
+
+#if (@X07/1/='k')
+X07/4/     | 008(1)/30/     | S
+X07/5/     | 008(1)/29/     | Table ('kuvpohmy.tbl')
+#endif
+
+#if (@X07/1/='g')
+X07/4/     | 008(1)/30/     | S
+X07/5/     | 008(1)/29/     | Table ('kuvpohmy.tbl')
+X07/8/     | 008(1)/32/     | S
+#endif
+
+// Monografia - tekstiaineisto, tekstikäsikirjoitus, sekalainen tai moniviestin
+#if (@000/8/!='b' Or @000/8/!='i' Or @000/8/!='s')
+008/23/    | 008/23/        | Table ('kohdery.tbl')
+008/24/    | 008/24/        | Table ('ilmiasuy.tbl')
+008/25/    | 008/25/        | If (S != 'l' And S != 'z') Then S; If (Exists(@509) And S='m') Then 'o' Else Table ('sisaltoy.tbl')
+008/25/    | 008/34/        | If (S = 'l') Then 'x' Else If (S = 'z') Then 't' Else If (S = 'u') Then 'w'
+008/29/    | 008/29/        | Table ('virally.tbl')
+008/30/    | 008/30/        | Table ('kokjulky.tbl')
+008/31/    | 008/31/        | Table ('juhljulky.tbl')
+008/32/    | 008/32/        | Table ('indeksiy.tbl')
+008/34/    | 008/34/        | If (D = '|' Or (S != '|' And S != '0' And S != '1')) Then Table ('kirjally.tbl')
+008/35/    | 008/35/        | Table ('elamaky.tbl')
+#endif
+
+// Kausijulkaisu - tekstiaineisto
+#if ((@000/7/='a' Or @000/7/='t') And (@000/8/='b' Or @000/8/='i' Or @000/8/='s'))
+008/19/    | 008/19/        | Table ('ilmtihy.tbl')
+008/21/    | 008/21/        | S
+008/22/    | 008/22/        | Table ('kaustyyy.tbl')
+008/24/    | 008/24/        | Table ('ilmkausy.tbl')
+008/25/    | 008/25/        | Table ('sisalkay.tbl')
+008/29/    | 008/29/        | Table ('virally.tbl')
+008/30/    | 008/30/        | Table ('kokjulky.tbl')
+008/34/    | 008/34/        | Table ('kirjjary.tbl')
+#endif
+
+// Nuottijulkaisu, Nuottikäsikirjoitus, puhäänite, musiikkiäänite
+#if (@000/7/='c' Or @000/7/='d' Or @000/7/='i' Or @000/7/='j')
+008/19-20/ | 008/19-20/     | Table ('muslajiy.tbl')
+008/21/    | 008/21/        | Table ('nuottyyy.tbl')
+008/23/    | 008/23/        | Table ('kohdery.tbl')
+008/24/    | 008/24/        | If (@000/7/!='c' Or @000/7/!='d') Then Table ('musilmiy.tbl')
+008/25/    | 008/25/        | Table ('liiteaiy.tbl')
+008/31/    | 008/31/        | Table ('kirjmusy.tbl')
+#endif
+
+// Kartta-aineisto, Karttakäsikirjoitus
+#if (@000/7/='e' Or @000/7/='f')
+008/19-21/ | 008/19-21/     | Table ('korkeustiedy.tbl')
+008/23-24/ | 008/23-24/     | Table ('projektioy.tbl')
+008/26/    | 008/26/        | Table ('karttyyy.tbl')
+008/29/    | 008/29/        | Table ('virally.tbl')
+008/32/    | 008/32/        | Table ('sijhakey.tbl')
+#endif
+
+// Heijastettava kuva tai -viestin, kuva, esine
+#if (@000/7/='g' Or @000/7/='k' Or @000/7/='r')
+008/23/    | 008/23/        | Table ('kohdery.tbl')
+008/34/    | 008/34/        | Table ('visilmy.tbl')
+#endif
+
+//Elektroninen aineisto
+#if (@000/7/='m')
+008/23/    | 008/23/        | Table ('kohdery.tbl')
+008/27/    | 008/22/        | S
+008/29/    | 008/29/        | Table ('virally.tbl')
+#endif
+
+015I1 | 015I1	    | S
+015I2 | 015I2	    | PartOrWhole
+015$a | 015$a       | RegReplace('[\\(\\s]*(sid\\.|nid\\.|rengaskirja)\\)?', ''); If (S != '') Then S
+015$a | <A21$c      | If Not (Exists(@020$q)) And If (RegFind('(sid\\.|nid\\.|rengaskirja|hbk\\.|pbk\\.|[Kk]oko|[Oo]sa)') >= 0) Then RegMatch(1)
+015$q | <A21$c      | If Not (Exists(@020$q)) Then S; RegReplace('\\s*\\((.*?)\\)', '$c\\1'); RegReplace('\\s*\\((.*?)\\)', ', \\1'); Delete (':', At Ending)
+
+020I1 | <A21I1      | ' '
+020I2 | <A21I2      | PartOrWhole
+020$a | <A21$a      | S; RegReplace('\\s*\\((.*?)\\)', '$c\\1'); RegReplace('\\s*\\((.*?)\\)', ', \\1'); Delete (':', At Ending)
+020$q | <A21$c      | If (RegFind('(sid\\.|nid\\.|rengaskirja|hbk\\.|pbk\\.|[Kk]oko|[Oo]sa)') >= 0) Then S; Delete ('(', At Beginning); Delete (')', At Ending)
+020$c | <A21$d      | S; Replace (', ' By '$e')
+020$z | <A21$z      | S
+
+A21I1 | 021I1       | S
+A21I2 | 021I2       | S
+A21   | 021         | S; MoveAfter('c', $a, 'c')
+
+022I1 | 022(nto)I1  | S
+022I2 | 022(nto)I2  | ' '
+022$a | 022$a       | S
+022$y | 022$y       | S
+022$z | 022$z       | S
+
+#if (024I1 = '0')
+024I1  | 024(no)I1  | ' '
+024I2  | 024(no)I2  | SetIndFrom245np
+024$a  | 024(no)$a  | S
+024$z  | 024$z      | S
+#endif
+
+#if (024I1 = '2')
+024I1  | 025(no)I1  | ' '
+024I2  | 025(no)I2  | SetIndFrom245np
+024$a  | 025(no)$a  | S
+024$a  | 025$c      | If (BFirst('(')=0) Then S; Replace ('(' By '$c')
+024$c  | 025$d      | S
+024$c  | 025$e      | If (BFirst(', ')=0) Then S; Replace ('(' By '$c')
+024$z  | 025$z      | S
+#endif
+
+#if (024I1 = '5')
+024I1  | 029(no)I1  | ' '
+024I2  | 029(no)I2  | SetIndFrom245np
+024$a  | 029$a      | S
+#endif
+
+027    | 027I1      | ' '
+027    | 027I2      | ' '
+027$a  | 027$a      | S
+
+028I1  | 028I1      | ' '
+028I2  | 028I2      | SetIndFrom245np
+028$b  | 028$a      | S
+028$a  | 028$e      | If (I1='0') Then S
+028$a  | 028$b      | If (I1='1') Then S
+028$a  | 028$c      | If (I1='2') Then S
+
+031I1  | 528I1      | ' '
+031I2  | 528I2      | ' '
+031$t  | 528$a      | S
+
+033I1  | 033I1      | ' '
+033I2  | 033I2      | SetIndFrom245np
+033$a  | 033$a      | S
+
+034I1 | 034I1       | If (I1='3') Then '2' Else S
+034I2 | 034I2       | ' '
+034$a | 034$a       | S
+034$b | 034$b       | S
+034$c | 034$c       | S
+034$d | 034$d       | S
+034$e | 034$e       | S
+034$f | 034$f       | S
+034$g | 034$g       | S
+034$h | 034$h       | S
+034$j | 034$j       | S
+034$k | 034$k       | S
+034$m | 034$l       | S
+034$n | 034$n       | S
+034$p | 034$p       | S
+
+039I1 | 039I1       | ' '
+039I2 | 039I2       | ' '
+039$a | 039$a       | S
+039$b | 039$b       | S
+039$d | 039$d       | S
+039$e | 039$e       | S
+039$f | 039$f       | S
+039$g | 039$g       | S
+
+041I1 | <A41I1        | If (I1='1') Then '1' Else ' '
+041I2 | <A41I2        | ' '
+041$a | <A41$a        | Table ('kielikoodit.tbl')
+041$b | <A41$b        | Table ('kielikoodit.tbl')
+041$d | <A41$d        | Table ('kielikoodit.tbl')
+041$e | <A41$e        | Table ('kielikoodit.tbl')
+041$f | <A41$f        | Table ('kielikoodit.tbl')
+041$g | <A41$g        | Table ('kielikoodit.tbl')
+041$h | <A41$h        | Table ('kielikoodit.tbl')
+041$j | <A41$j        | Table ('kielikoodit.tbl')
+A41I1 | 041(new)I1    | S
+A41I2 | 041(newest)I2 | S
+A41   | 041(newest)   | S; ReplaceOcc('$a' By '','>1'); ReplaceOcc('$b' By '','>1'); ReplaceOcc('$h' By '','>1'); Replace ('$d' By '$a'); Replace('$h' By '$c'); Replace ('hunhun' By 'hun')
+
+008/36-38/ | 041$a  | If ((Not Exists (@041)) And S != '   ') Then S
+
+045I1 | 045I1       | S
+045I2 | 045I2       | ' '
+045$b | 045$c       | S; Delete ('c', At Beginning); Delete ('d', At Beginning)
+045$c | 045$b       | S
+
+049I1  | 044I1      | ' '
+049I2  | 044I2      | SetIndFrom245np
+049$a  | 044$a      | S
+049$b  | 044$b      | S
+049$c  | 044$c      | S
+049$d  | 044$d      | S
+
+050 | 083I1         | ' '
+050 | 083I2         | ' '
+050$a  | 083$a      | S
+
+052I1 | 052I1       | ' '
+052I2 | 052I2       | ' '
+052$a | 052$a       | S
+052$b | 052$b       | S
+
+060 | 090I1         | ' '
+060 | 090I2         | ' '
+060$a  | 090$a      | S
+
+080I1 | 080I1       | ' '
+080I2 | 080I2       | ' '
+080$a | 080$a       | If (Not Exists(@080(nt)$x)) Then S
+080$x | <A80(new)$a | @080(nt)$a + S
+A80   | 080(new)    | S
+
+082   | 082I1       | ' '
+082   | 082I2       | ' '
+082$a | 082$a       | S
+
+084$a | 092$a       | If (@084$2 = 'msc') Then S
+084$a | 093$a       | If (@084$2 = 'acmccs') Then S
+084$a | 094$a       | If (@084$2 = 'gfdc') Then S
+084$a | 095$a       | If (@084$2 = 'rubbk') Then S
+084$a | 098$a       | If (@084$2 = 'ykl') Then S
+
+090   | 090(new)    | S
+091   | 091(new)    | S
+092   | 092(new)    | S
+093   | 093(new)    | S
+094   | 094(new)    | S
+095   | 095(new)    | S
+098   | 098(new)    | S
+
+100I1 | 100I1       | NameCheck
+100I2 | 100I2       | ' '
+100$6 | 100$6       | S
+100$a | 100$a       | S; Delete (',', At Ending); If (RegFind(' [a-zA-Z]\\.\$') < 0) Delete ('.', At Ending); Replace (', ' By '$h')
+100$j | 100$f       | S; Delete (',', At Ending); Delete ('.', At Ending)
+100$c | 100$f       | S; Delete (',', At Ending); Delete ('.', At Ending)
+100$d | 100$c       | YearOfDeath; Delete (',', At Ending); Delete ('.', At Ending)
+100$e | 100$x       | S; FunctionCode
+
+110I1 | <B10I1        | If I1='0' Then '2' Else S
+110I2 | <B10I2        | ' '
+110$a | <B10$a        | S; Delete ('.', At Ending); RegReplace('\\s*\\((.*)\\)', '$f\\1');
+110$b | <B10$c        | S; Delete ('.', At Ending)
+110$n | <B10$i        | S; Delete ('(', At Beginning); Delete (':', At Ending); Delete ('.', At Ending)
+110$d | <B10$k        | S; Delete ('(', At Beginning); Delete (':', At Ending); Delete ('.', At Ending); Delete (')', At Ending)
+110$c | <B10$j        | S; Delete ('.', At Ending); Delete (')', At Ending)
+110$g | <B10$f        | If (D != '') Then D + ', ' + S Else S; Delete (')', At Ending); Delete (',', At Ending); Delete (':', At Ending); Delete ('.', At Ending)
+110$e | <B10$x        | S; FunctionCode
+B10I1 | 110(new)I1    | S
+B10I2 | 110(newest)I2 | S
+B10   | 110(newest)   | S; Replace (':$j' By '$j')
+
+111I1 | <B11I1        | ' '
+111I2 | <B11I2        | ' '
+111$a | <B11$a        | S; Delete ('.', At Ending); RegReplace('\\s*\\((.*)\\)', '$f\\1')
+111$e | <B11$c        | S; Delete ('.', At Ending)
+111$n | <B11$i        | S; Delete ('(', At Beginning); Delete (':', At Ending)
+111$d | <B11$k        | S; Delete ('(', At Beginning); Delete ('.', At Ending); Delete (':', At Ending); Delete (',', At Ending); Delete (')', At Ending)
+111$c | <B11$j        | S; Delete ('.', At Ending); Delete (')', At Ending)
+111$g | <B11$f        | If (D != '') Then D + ', ' + S Else S; Delete (')', At Ending); Delete (',', At Ending); Delete (':', At Ending); Delete ('.', At Ending)
+B11I1 | 111(new)I1    | S
+B11I2 | 111(newest)I2 | S
+B11   | 111(newest)   | S; Replace (':$j' By '$j')
+
+//130 konvertoidaan näin kun (@000/7/='c' Or @000/7/='d' Or @000/7/='j')
+//tai kun 130$a on 'Raamattu', 'Kalevala', 'Tuhat ja yksi yötä', 'Bible', 'Bibeln'
+#if (@000(1)/7/='c' Or @000(1)/7/='d' Or @000(1)/7/='j' Or RegFind(@130$a, '(Raamattu|Kalevala|Tuhat ja yksi y|Bible|Bibeln)') >= 0)
+130I1 | 240I2       | If (I1='0') Then ' ' Else S
+130I2 | 240I1       | '1'
+130$a | 240$a       | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+130$k | 240$s       | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+130$m | 240$f       | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+130$r | 240$m       | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+130$g | 240$p       | S; Delete ('(', At Beginning); Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending); Delete (')', At Ending)
+130$f | 240$p       | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+130$n | 240$g       | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+130$p | 240$s       | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+130$s | 240$t       | If (RegFind('(partituuri\b|\c3\a4\c3\a4ni|\c8a\c8ani|stemma)') >= 0) Then S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+130$s | 240$q       | If (RegFind('(partituuri\b|\c3\a4\c3\a4ni|\c8a\c8ani|stemma)') < 0) Then S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+130$o | 240$u       | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+130$l | 240$l       | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+//numeroiden lajitteluosakentät (n -> i, j, k ja g -> o, v, w) - mahdotonta
+#endif
+
+//130 konvertoidaan näin muissa tapauksissa kuin edellä
+#if (@000(1)/7/!='c' And @000(1)/7/!='d' And @000(1)/7/!='j' And RegFind(@130$a, '(Raamattu|Kalevala|Tuhat ja yksi y|Bible|Bibeln)') < 0)
+130I1 | 241I1       | SetIndFrom245np
+130I1 | 241I2       | If (S='0') Then ' ' Else S
+130$a | 241$a       | S; Delete ('.', At Ending); Delete (',', At Ending)
+#endif
+
+210I1 | 210I1       | ' '
+210I2 | 210I2       | ' '
+210$a | 210$a       | If (I2=' ') Then S
+210$b | 210$b       | If (I2=' ') Then S
+
+222I1 | 222I1       | ' '
+222I2 | 222I2       | If (I2='0') Then ' ' Else S
+222$a | 222$a       | S
+222$b | 222$b       | S
+
+//240 konvertoidaan näin kun (@000/7/='c' Or @000/7/='d' Or @000/7/='j')
+//tai kun 240$a on 'Raamattu', 'Kalevala', 'Tuhat ja yksi yötä', 'Bible', 'Bibeln'
+#if (@000(1)/7/='c' Or @000(1)/7/='d' Or @000(1)/7/='j' Or RegFind(@240$a, '(Raamattu|Kalevala|Tuhat ja yksi y|Bible|Bibeln)') >= 0)
+240I1 | 240I1       | '2'
+240I2 | 240I2       | If (I2='0') Then ' ' Else S
+240$a | 240$a       | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+240$k | 240$s       | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+240$m | 240$f       | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+240$r | 240$m       | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+240$g | 240$p       | S; Delete ('(', At Beginning); Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending); Delete (')', At Ending)
+240$f | 240$p       | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+240$n | 240$g       | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+240$p | 240$s       | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+240$s | 240$t       | If (RegFind('(partituuri\b|\c3\a4\c3\a4ni|\c8a\c8ani|stemma)') >= 0) Then S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+240$s | 240$q       | If (RegFind('(partituuri\b|\c3\a4\c3\a4ni|\c8a\c8ani|stemma)') < 0) Then S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+240$o | 240$u       | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+240$l | 240$l       | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+//numeroiden lajitteluosakentät (n -> i, j, k ja g -> o, v, w) - mahdotonta
+#endif
+
+//240 konvertoidaan näin muissa tapauksissa kuin edellä
+#if (@000(1)/7/!='c' And @000(1)/7/!='d' And @000(1)/7/!='j' And RegFind(@240$a, '(Raamattu|Kalevala|Tuhat ja yksi y|Bible|Bibeln)') < 0)
+240I1 | 241I1       | ' '
+240I2 | 241I2       | If (I2='0') Then ' ' Else S
+240$a | 241$a       | S; Delete ('.', At Ending); Delete (',', At Ending)
+240$p | 241$a       | D + ' : ' + S; Delete ('.', At Ending); Delete (',', At Ending)
+#endif
+
+242I1 | 242I1       | ' '
+242I2 | 242I2       | ' '
+242$a | 242$a       | S
+
+245I1 | 245I1       | If (Exists(@130I1)) Then '1' Else If (S = '0') Then '1' Else If (S = '1') Then '2' Else ' '
+245I2 | 245I2       | If (I2='0') Then ' ' Else S
+
+245$a | 245$a       | S; Replace ('=' By '$r'); Delete (':', At Ending); Delete ('/', At Ending); Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending); 
+245$a | 245$a       | S; Replace ('=' By '$r'); Delete (':', At Ending); Delete ('/', At Ending); Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending); 
+245$h | 245$z       | S; Delete ('[', At Beginning); Delete ('.', At Ending); Delete ('/', At Ending); Delete (';', At Ending); Delete (':', At Ending); Delete (']', At Ending); Delete ('=', At Ending)
+245$b | 245$r       | If (RegFind(@245, '=$b') >= 0) Then S; Delete ('/', At Ending); Delete ('.', At Ending); Replace(' : ' By '$b'); Replace (' = ' By '$r')
+245$b | 245$b       | If ((RegFind(@245, '=$b') < 0) And (RegFind(@245, ';$b') < 0)) Then S; Delete ('/', At Ending); Delete ('.', At Ending); Replace(' : ' By '$b'); Replace(' ; ' By '$a'); Replace (' = ' By '$r')
+245$b | 245$a(2)    | If (RegFind(@245, ';$b') >= 0) Then S; Delete ('/', At Ending); Delete ('.', At Ending); Replace(' : ' By '$b'); Replace (' = ' By '$r')
+
+245$c | 245$n       | If (@000/7/='a' And @000/8/='s') Then S; Delete ('.', At Ending); Delete ('/', At Ending)
+245$c | 245$d       | If (@000/8/!='s') Then S; Replace ('; ' By '$e'); Delete ('.', At Ending); Delete ('/', At Ending)
+245$n | 245$g       | If (@000/8/='s') Then S; Delete ('.', At Ending) ; Delete (',', At Ending); Delete ('/', At Ending)
+245$p | 245$h       | If (@000/8/='s') Then S; Delete (',', At Ending); Delete ('.', At Ending); Delete ('/', At Ending)
+
+245I1 | <B48I1      | If ((Exists ($n) Or Exists ($p)) And (@000/8/!='s')) Then ' '
+245I2 | <B48I2      | If ((Exists ($n) Or Exists ($p)) And (@000/8/!='s')) Then ' '
+245$n | <B48$g      | If (ns=1 And @000/8/!='s') Then S; Delete ('.', At Ending); Delete (',', At Ending); Delete ('/', At Ending); Delete (' =', At Ending)
+245$p | <B48$h      | If (ns=1 And @000/8/!='s') Then S; Delete (',', At Ending); Delete ('.', At Ending); Delete ('/', At Ending); Delete (' =', At Ending)
+245$n | <B48$y      | If (ns=1 And @000/8/!='s' And RegFind('\\d') >= 0 And RegFind('.+/\\d+') < 0) Then S; Delete ('.', At Ending); Delete (',', At Ending); Delete ('/', At Ending); Delete (' =', At Ending); PadZero
+245$n | <B48$x      | If (ns=1 And @000/8/!='s' And RegFind('\\d') >= 0 And RegFind('(.+)/(\\d+)') >= 0) Then RegMatch(2); PadZero
+245$n | <B48$y      | If (ns=1 And @000/8/!='s' And RegFind('\\d') >= 0 And RegFind('(.+)/(\\d+)') >= 0) Then RegMatch(1); Delete ('.', At Ending); Delete (',', At Ending); Delete ('/', At Ending); Delete (' =', At Ending); PadZero
+245$p | <B48$r      | If (ns>1 And @000/8/!='s') Then S; Delete (',', At Ending); Delete ('.', At Ending); Delete ('/', At Ending); Delete (' =', At Ending)
+
+// Aineiston yleismääreen asettaminen
+
+#if (@000/7/ = 'a') and (@008/24/ = 'o' Or  @008/24/ = 'q' Or  @008/24/ = 's') And Not (Exists(@245$h))
+000/7/     | 245$z          | 'Elektroninen aineisto'
+#endif
+
+#if (@000/7/ = 'c') And Not (Exists(@245$h))
+000/7/     | 245$z          | 'Nuottijulkaisu'
+#endif
+
+#if (@000/7/ = 'd') And Not (Exists(@245$h))
+000/7/     | 245$z          | 'NuottikÃ¤sikirjoitus'
+#endif
+
+#if (@000/7/ = 'e') And Not (Exists(@245$h))
+000/7/     | 245$z          | 'Kartta-aineisto'
+#endif
+
+#if (@000/7/ = 'f') And Not (Exists(@245$h))
+000/7/     | 245$z          | 'KarttakÃ¤sikirjoitus'
+#endif
+
+// Jos nimiön merkkipaikan 06 koodi on 'g' (heijastettava kuva tai viestin), aineisto oletetaan videotallenteeksi,
+// ellei 337-kentässä ole merkintää 'heijastettava' tai 300$a-osakentässä heijastuskuvaan viittaavia termejä.
+
+#if ((@000/7/ = 'g') And Not (Exists(@245$h)) And Not (Exists(@337)))
+300$a      | 245$z          | If (RegFind(@300$a, '[Dd]ia') >=0) Or (RegFind(@300$a, '[Kk]alvo') >=0) Or (RegFind(@300$a, '[Hh]eijastu') >=0) Then 'Heijastuskuva' Else 'Videotallenne'
+#endif
+
+#if ((@000/7/ = 'g') And Not (Exists(@245$h)) And (Exists(@337)))
+337$a      | 245$z          | If (S = 'heijastettava') Then 'Heijastuskuva'
+337$a      | 245$z          | If (S = 'video') Then 'Videotallenne'
+#endif
+
+#if (@000/7/ = 'i' Or @000/7/ = 'j')
+000/7/     | 245$z          | 'Äänite'
+#endif
+
+#if ((@000/7/ = 'k') And Not (Exists(@245$h)))
+000/7/     | 245$z          | 'Kuva'
+#endif
+
+#if ((@000/7/ = 'm') And Not (Exists(@245$h)))
+000/7/     | 245$z          | 'Elektroninen aineisto'
+#endif
+
+#if ((@000/7/ = 'o') And Not (Exists(@245$h)))
+000/7/     | 245$z          | 'Moniviestin'
+#endif
+
+#if ((@000/7/ = 'r') And Not (Exists(@245$h)))
+000/7/     | 245$z          | 'Esine'
+#endif
+
+// Jos 300- tai 337-kenttiin on merkitty maininta mikromuodosta,
+// mahdollinen nimiökoodin perusteella asetettu yleismääre korvataan.
+
+#if Not ((Exists(@245$h)) And (Exists(@337)))
+337$a	   | 245$z	    | If (S = 'mikromuoto') Then 'Mikrotallenne'
+#endif
+
+#if Not ((Exists(@245$h)) And Not (Exists(@337)))
+300	   | 245$z	    | If (RegFind(@300, '[Mm]ikrokort') >=0) Or (RegFind(@300, '[Mm]ikrofil') >=0) Then 'Mikrotallenne'
+#endif
+
+245   | 245	    | Sort('az')
+
+B48I1 | 248I1       | S
+B48I2 | 248I2       | S
+B48   | 248         | S; MoveLast('y')
+
+#if (@000(1)/8/!='m')
+246I1 | 246I1       | '3'
+246I2 | 246I2       | ' '
+246$a | 246$a       | S; Delete (' :'); Delete (':'); Delete ('='); Delete ('/'); Delete ('.')
+246$h | 246$z       | S; Delete ('[', At Beginning); Delete ('.', At Ending); Delete ('/', At Ending); Delete (';', At Ending); Delete (' :', At Ending); Delete (':', At Ending); Delete (']', At Ending)
+246$b | 246$b       | S; Delete (' :'); Delete (':'); Delete ('='); Delete ('/'); Delete ('.')
+246$n | 246$g       | S; Delete (' :'); Delete (':'); Delete ('='); Delete ('/'); Delete ('.')
+246$p | 246$h       | S; Delete (' :'); Delete (':'); Delete ('='); Delete ('/'); Delete ('.')
+#endif
+
+#if (@000(1)/8/='m')
+246I1 | <C46I1        | ' '
+246I2 | <C46I2        | ' '
+246$a | <C46$a        | S; Delete (' :', At Ending); Delete (':', At Ending); Delete ('='); Delete ('/'); Delete ('.')
+246$b | <C46$b        | S; Delete ('/'); Delete ('.')
+C46I1 | 745(new)I1    | S
+C46I2 | 745(newest)I2 | S
+C46   | 745(newest)   | S; Replace('$b' By ' : ')
+#endif
+
+#if (@246I2 = ' ')
+246$i | 500(1)$a    | + If (D != '') Then '. - ' + S Else S
+246$a | 500(1)$a    | + S
+#endif
+
+#if (@246I2 = '4')
+246$a | 500(1)$a    | + If (D != '') Then '. - Kansinimeke: ' + S Else 'Kansinimeke: ' + S; Delete (':'); Delete ('='); Delete ('/'); Delete ('.', At Ending)
+#endif
+
+#if (@246I2 = '8')
+246$a | 500(1)$a    | + If (D != '') Then '. - ' + S Else S; Delete (':'); Delete ('='); Delete ('/'); Delete ('.'); If (D != '') Then
+                      {
+                        If (Len('\C3\A4') = 1) Then D + '. - Selk\c3\a4nimeke: ' + S Else D + '. - Selk\c8animeke: ' + S; // Unicode check hack
+                      }
+                      Else
+                      {
+                        If (Len('\C3\A4') = 1) Then 'Selk\c3\a4nimeke: ' + S Else 'Selk\c8animeke: ' + S; // Unicode check hack
+                      };
+#endif
+
+247I1 | 745(new)I1    | ' '
+247I2 | 745(newest)I2 | ' '
+247$a | 745(newest)$a | S; Delete (':', At Ending); Delete ('=', At Ending); Replace (' / ' By '$d'); Delete ('.', At Ending)
+247$b | 745(newest)$a | + ' : ' + S; Delete ('/', At Ending); Delete ('.', At Ending)
+247$n | 745(newest)$a | + '. ' + S; Delete ('.', At Ending); Delete (',', At Ending)
+247$p | 745(newest)$a | + ' : ' + S; Delete (',', At Ending); Delete ('.', At Ending)
+
+247$a | 500(1)$a    | + If (D != '') Then '. - '
+247$a | 500(1)$a    | + If (Len('\C3\A4') = 1) Then 'Ilmestynyt my\c3\b6s nimell\c3\a4: ' + S Else 'Ilmestynyt my\c8\6fs nimell\c8\61: ' + S
+247$b | 500(1)$a    | + ' ' + S
+
+250I1 | 250I1       | ' '
+250I2 | 250I2       | SetIndFrom245np
+250$a | 250$a       | S; Delete ('/', At Ending); If (RegFind('[ed|uppl]\\.\$') < 0 And RegFind('\\s.\\.\$') < 0) Delete ('.', At Ending)
+250$b | 250$c       | S; Delete ('.', At Ending)
+
+254I1 | 254I1       | ' '
+254I2 | 254I2       | SetIndFrom245np
+254$a | 254$a       | S
+
+255I1 | 256I1       | ' '
+255I2 | 256I2       | SetIndFrom245np
+255$a | 256$a       | S; Delete (';', At Ending)
+255$b | 256$b       | S
+255$c | 256$c       | S
+255$e | 256$d       | S
+
+256I1 | 258I1       | ' '
+256I2 | 258I2       | SetIndFrom245np
+256$a | 258$a       | S; Delete ('.', At Ending)
+
+#if (Not (Exists (@245(1)$n) Or Exists (@245(1)$p)))
+260I1 | 260I1            | ' '
+260I2 | 260I2            | ' '
+260$a | 260$a            | S; Delete (':', At Ending); Delete (',', At Ending); Delete ('.', At Ending); Delete (';', At Ending)
+260$b | 260$b            | S; Delete (',', At Ending); Delete (':', At Ending); Delete ('.', At Ending); Delete (';', At Ending)
+260$c | 260$c            | S; Replace ('c1' By 'cop. 1'); Replace ('c2' By 'cop. 2'); Delete ('.', At Ending); Delete (';', At Ending)
+260$e | 260$e            | S; Delete ('(', At Beginning); Delete (')', At Ending); Delete (':', At Ending); Delete ('.', At Ending)
+260$f | 260$f            | S; Delete ('(', At Beginning); Delete (')', At Ending); Delete (',', At Ending); Delete ('.', At Ending)
+260$g | 260$g            | S; Delete ('(', At Beginning); Delete (')', At Ending); Delete ('.', At Ending)
+#endif
+
+#if (Exists (@245(1)$n) Or Exists (@245(1)$p))
+260I1 | 260(new)I1       | ' '
+260I2 | 260(newest)I2    | ' '
+260$a | 260(newest)$a    | S; Delete (':', At Ending); Delete (',', At Ending); Delete ('.', At Ending); Delete (';', At Ending)
+260$b | 260(newest)$b    | S; Delete (',', At Ending); Delete (':', At Ending); Delete ('.', At Ending); Delete (';', At Ending)
+260$c | 260(new)I1       | ' '
+260$c | 260(newest)I2    | '1'
+260$c | 260(newest)$c    | S; Replace ('c1' By 'cop. 1'); Replace ('c2' By 'cop. 2'); Delete ('.', At Ending); Delete (';', At Ending)
+260$e | 260(newest)$e    | S; Delete ('(', At Beginning); Delete (')', At Ending); Delete (':', At Ending); Delete ('.', At Ending)
+260$f | 260(newest)$f    | S; Delete ('(', At Beginning); Delete (')', At Ending); Delete (',', At Ending); Delete ('.', At Ending)
+260$g | 260(newest)$g    | S; Delete ('(', At Beginning); Delete (')', At Ending); Delete ('.', At Ending)
+#endif
+
+300I1 | <C00I1      | ' '
+300I2 | <C00I2      | SetIndFrom245np
+300$z | <C00$z      | S
+300$a | <C00$a      | S; Replace ('p.' By 's.');
+                      Replace ('S ' By 's. ');
+                      Replace ('S.' By 's.');
+                      Delete (':', At Ending);
+                      Delete (';', At Ending);
+                      Delete ('+', At Ending);
+                      RegReplace('(.*)\\((.+)\\)', '\\2$z\\1')
+300$b | <C00$b      | S; Replace ('ill.' By 'kuv.'); Replace ('illus.' By 'kuv.'); Replace (' (some col.)' By ''); Replace (' (part col.)' By ''); Replace (' (chiefly col.)' By ''); Replace ('col. ' By ''); Replace (' (vissa i f\87rg)' By ''); Delete (';', At Ending); Delete ('+', At Ending)
+300$c | <C00$c      | S; Replace ('.' By ' '); Delete ('+', At Ending)
+300$e | <C00$d      | S; Replace ('+ ' By ' ', At Beginning); Delete ('.', At Ending)
+
+C00I1 | 300I1       | S
+C00I2 | 300I2       | S
+C00   | 300         | S; MoveFirst('z')
+
+306I1 | 306I1       | ' '
+306I2 | 306I2       | SetIndFrom245np
+306$a | 306$a       | S
+
+310I1 | 520I1       | ' '
+310I2 | 520I2       | SetIndFrom245np
+310$a | 520$a       | S
+
+351I1 | 351I1       | ' '
+351I2 | 351I2       | SetIndFrom245np
+351$a | 351$a       | S
+351$b | 351$a       | + S
+351$c | 351$a       | + S
+
+362I1 | 255I1       | If (I1=0) Then S
+362I2 | 255I2       | If (I1=0) Then ' '
+362$a | 255$a       | If (I1=0) Then S; Delete ('.', At Ending)
+
+440I1 | 440I1       | If (I1='2') Then '1' Else S
+440I2 | 440I2       | If (I2='0') Then ' ' Else S
+440$a | 440$a       | S; Replace (' / ' By '$d'); Delete (';', At Ending); Delete (',', At Ending); Delete ('.', At Ending)
+440$n | 440$g       | S; Delete (';', At Ending); Delete (',', At Ending); Delete ('.', At Ending)
+440$p | 440$h       | S; Delete (';', At Ending); Delete (',', At Ending); Delete ('.', At Ending)
+440$x | 440$w       | S; Delete (';', At Ending); Delete (',', At Ending); Delete ('.', At Ending)
+440$v | 440$v       | S
+
+#if (Not Exists(@810))
+490I1 | 440(new)I1     | SetIndFrom245np
+490I2 | 440(newest)I2  | ' '
+490$a | 440(newest)$a  | S; Delete (';', At Ending);
+                            Delete (',', At Ending);
+                            Delete ('.', At Ending);
+                            Delete ('=', At Ending);
+                            Replace (' :' By '$b');
+                            Replace ('. ' By '$g');
+                            Replace ('.' By '$g');
+                            // Pilkusta ei tehdä $h:ta, ei voida olettaa.
+                            Replace (' / ' By '$n'); // Tästä voisi tulla myös $d, mutta oletettavasti $n on yleisempi, eikä voida päätellä muuta.
+                            Replace ('=' By '$r')
+490$x | 440(newest)$w  | S; Delete (';', At Ending); Delete (',', At Ending); Delete ('.', At Ending)
+490$v | 440(newest)$v  | S
+490$v | 440(newest)$y  | If (RegFind('\\d') >= 0 And RegFind('.+/\\d+') < 0) Then S; PadZero
+490$v | 440(newest)$x  | If (RegFind('\\d') >= 0 And RegFind('(.+)/(\\d+)') >= 0) Then RegMatch(2); PadZero
+490$v | 440(newest)$y  | If (RegFind('\\d') >= 0 And RegFind('(.+)/(\\d+)') >= 0) Then RegMatch(1); PadZero
+#endif
+
+#if (Exists(@810))
+490(1)I1 | 410(new)I2     | SetIndFrom245np
+490(1)I2 | 410(newest)I1  | If (@810I1 = '1') Then '1' Else '2'
+490(1)$a | 410(newest)$a  | S; Delete (';', At Ending); Delete (',', At Ending); Delete ('.', At Ending); Delete ('=', At Ending); Replace ('.' By '$g'); Replace (',' By '$h')
+490(1)$x | 410(newest)$w  | S; Delete (';', At Ending); Delete (',', At Ending); Delete ('.', At Ending)
+490(1)$v | 410(newest)$v  | S
+490(1)$v | 410(newest)$y  | If (RegFind('\\d') >= 0 And RegFind('.+/\\d+') < 0) Then S; PadZero
+490(1)$v | 410(newest)$x  | If (RegFind('\\d') >= 0 And RegFind('(.+)/(\\d+)') >= 0) Then RegMatch(2); PadZero
+490(1)$v | 410(newest)$y  | If (RegFind('\\d') >= 0 And RegFind('(.+)/(\\d+)') >= 0) Then RegMatch(1); PadZero
+#endif
+
+500(1)I1 | 500(1)I1       | ' '
+500(1)I2 | 500(1)I2       | If (Not Exists(%500)) Then SetIndFrom245np
+500$a    | 500(1)$a       | + If (D != '') Then '. - ' + S Else S; Delete ('.', At Ending)
+
+501I1 | <C05(new)I1     | ' '
+501I2 | <C05(newest)I2  | SetIndFrom245np
+501$a | <C05(newest)$a  | S; Delete ('.', At Ending)
+
+502I1 | 502I1       | ' '
+502I2 | 502I2       | SetIndFrom245np
+502$a | 502$a       | S; Replace ('Thesis' By 'Diss.'); Replace ('--' By '$b'); Replace (', ' By '$d'); Delete (' :', At Ending)
+502$c | 502$b       | If (RegFind('(.*):') >= 0) Then RegMatch(1)
+502$c | 502$c       | If (RegFind(':(.*)') >= 0) Then RegMatch(1) Else S; Delete ('.', At Ending); Delete (',', At Ending)
+502$d | 502$d       | S; Delete ('.', At Ending)
+
+504I1 | 504I1       | ' '
+504I2 | 504I2       | SetIndFrom245np
+504$a | 504$a       | S; Delete ('.', At Ending)
+
+505I1 | <C05(new)I1     | ' '
+505I2 | <C05(newest)I2  | SetIndFrom245np
+505   | <C05(newest)    | S; Delete ('.', At Ending);
+                             MoveFirst('g'); RegReplace('$gs\\.\\s?([^$]*)', '$gS. \\1:');
+                             Replace ('$g' By '$a', At Beginning); Replace ('$t' By '$a', At Beginning);
+                             ReplaceOcc('$a' By ': ', '>1');
+                             Replace ('$t' By ' ');
+                             Replace ('$r' By ' ');
+                             Delete ('.', At Ending)
+
+C05I1 | 505(1)I1    | S
+C05I2 | 505(1)I2    | S
+C05   | 505(1)      | If (D != '') Then D + S Else S; ReplaceOcc('$a' By ' ; ', '>1')
+
+#if (Exists(@787$i))
+505$a | 008/33/       | Table ('505-to-008-32-arvostelukoodi.tbl')
+#endif
+
+506I1 | 507I1       | ' '
+506I2 | 507I2       | SetIndFrom245np
+506$a | 507$a       | S
+506$e | 507$b       | S
+506$b | 507$c       | S
+
+507I1 | 501(new)I1     | ' '
+507I2 | 501(newest)I2  | SetIndFrom245np
+507$a | 501(newest)$a  | S; Delete ('.', At Ending)
+507$b | 501(newest)$a  | + S; Delete ('.', At Ending)
+
+508I1 | 511I1       | ' '
+508I2 | 511I2       | SetIndFrom245np
+508$a | 511$a       | S; Delete ('.', At Ending)
+
+509I1 | 509I1       | ' '
+509I2 | 509I2       | SetIndFrom245np
+509$a | 509$a       | S; Delete (':', At Ending); Delete ('.', At Ending)
+509$c | 509$b       | S; Delete (',', At Ending); Delete ('.', At Ending)
+509$d | 509$d       | S; Delete ('.', At Ending)
+
+510I1 | 510I1       | ' '
+510I2 | 510I2       | SetIndFrom245np
+510$a | 510$a       | S; Delete (',', At Ending)
+510$c | 510$c       | S
+
+511I1 | 511(nto)I1  | ' '
+511I2 | 511(nto)I2  | SetIndFrom245np
+511$a | 511(nto)$a  | S; Delete ('.', At Ending)
+
+513I1 | 501(new)I1     | ' '
+513I2 | 501(newest)I2  | SetIndFrom245np
+513$a | 501(newest)$a  | S; Delete ('.', At Ending)
+513$b | 501(newest)$a  | + S; Delete ('.', At Ending)
+
+515I1 | 538I1       | ' '
+515I2 | 538I2       | SetIndFrom245np
+515$a | 538$a       | S; Delete ('.', At Ending)
+
+518I1 | 501(new)I1     | ' '
+518I2 | 501(newest)I2  | SetIndFrom245np
+518$a | 501(newest)$a  | S; Delete ('.', At Ending)
+
+520I1 | 506I1       | ' '
+520I2 | 506I2       | SetIndFrom245np
+520$a | 506$a       | If (RegFind('(Tiivistelm|Yhteenveto|Sammandrag|Sammanfattning|Abstract|Summary|Referat|Zusammenfassung)') >= 0) Then S Else { If (Len('\C3\A4') = 1) Then '[Tiivistelm\c3\a4]' + S Else '[Tiivistelm\c8a]'; };
+                      ReplaceOcc(': ' By '$b', '=1');
+                      Delete ('.', At Ending)
+520$a | 506$b       | If (RegFind('(Tiivistelm|Yhteenveto|Sammandrag|Sammanfattning|Abstract|Summary|Referat|Zusammenfassung)') < 0) Then S; Delete ('.', At Ending)
+
+#if (Exists (@520$b))
+520I1 | 519I1       | ' '
+520I2 | 519I2       | SetIndFrom245np
+520$b | 519$a       | S; Delete ('.', At Ending)
+#endif
+
+521I1 | 501(new)I1     | ' '
+521I2 | 501(newest)I2  | SetIndFrom245np
+521$a | 501(newest)$a  | S; Delete ('.', At Ending)
+521$b | 501(newest)$a  | + ',' + S; Delete ('.', At Ending)
+
+522I1 | 501(new)I1     | ' '
+522I2 | 501(newest)I2  | If (nt > 1) Then ' ' Else SetIndFrom245np
+522$a | 501(newest)$a  | S; Delete ('.', At Ending)
+
+524I1 | 501(new)I1     | ' '
+524I2 | 501(newest)I2  | If (nt > 1) Then ' ' Else SetIndFrom245np
+524$a | 501(newest)$a  | S; Delete ('.', At Ending)
+
+525I1 | 501(new)I1     | ' '
+525I2 | 501(newest)I2  | If (nt > 1) Then ' ' Else SetIndFrom245np
+525$a | 501(newest)$a  | S; Delete ('.', At Ending)
+
+530I1 | 529I1       | ' '
+530I2 | 529I2       | SetIndFrom245np
+530$a | 529$a       | S; Delete ('.', At Ending)
+530$b | 529$a       | + S; Delete ('.', At Ending)
+530$c | 529$a       | + S; Delete ('.', At Ending)
+
+533I1 | 501(new)I1     | ' '
+533I2 | 501(newest)I2  | SetIndFrom245np
+533$a | 501(newest)$a  | S
+533$b | 501(newest)$a  | + S
+533$c | 501(newest)$a  | + S
+533$d | 501(newest)$a  | + S
+533$e | 501(newest)$a  | + S
+533$f | 501(newest)$a  | + S
+533$m | 501(newest)$a  | + S
+533$n | 501(newest)$a  | + S
+
+534I1 | 534I1       | ' '
+534I2 | 534I2       | SetIndFrom245np
+534$a | 534$a       | S; Delete ('.', At Ending)
+534$t | 534$t       | S; Delete ('.', At Ending)
+534$b | 534$b       | S; Delete ('.', At Ending)
+534$m | 534$m       | S; Delete ('.', At Ending)
+534$c | 534$c       | S; Delete ('.', At Ending)
+534$e | 534$e       | S; Delete ('.', At Ending)
+534$f | 534$f       | S; Delete ('(', At Beginning); Delete (').', At Ending)
+534$l | 534$l       | S; Delete (',', At Ending)
+534$k | 534$k       | S; Delete (',', At Ending)	
+534$x | 534$x       | S; Delete ('.', At Ending)
+534$z | 534$x       | S; Delete ('.', At Ending)
+
+538I1 | 548(new)I1     | ' '
+538I2 | 548(newest)I2  | SetIndFrom245np
+538$a | 548(newest)$a  | S; Delete ('.', At Ending)
+
+540I1 | 501(new)I1     | ' '
+540I2 | 501(newest)I2  | SetIndFrom245np
+540$a | 501(newest)$a  | S; Delete ('.', At Ending)
+540$b | 501(newest)$a  | S; Delete ('.', At Ending)
+540$c | 501(newest)$a  | S; Delete ('.', At Ending)
+540$d | 501(newest)$a  | S; Delete ('.', At Ending)
+
+541I1 | 541I1       | ' '
+541I2 | 541I2       | SetIndFrom245np
+541$a | 541$a       | S; Delete (';', At Ending)
+541$b | 541$b       | S; Delete (';', At Ending)
+541$c | 541$c       | S; Delete (';', At Ending)
+541$d | 541$d       | S; Delete (';', At Ending)
+
+545I1 | 545I1       | ' '
+545I2 | 545I2       | SetIndFrom245np
+545$a | 545$a       | S; Delete ('.', At Ending)
+545$b | 545$a       | + S; Delete ('.', At Ending)
+
+546I1 | 501(new)I1     | ' '
+546I2 | 501(newest)I2  | SetIndFrom245np
+546$a | 501(newest)$a  | S; Delete ('.', At Ending)
+
+547I1 | 500(new)I1     | ' '
+547I2 | 500(newest)I2  | SetIndFrom245np
+547$a | 500(newest)$a  | S; Delete ('.', At Ending)
+
+// fi.chk: 500 on toistettava, vaikka MARC21-Finissä 500 on ei-toistettava.
+
+550I1 | 550(nto)I1  | ' '
+550I2 | 550(nto)I2  | SetIndFrom245np
+550$a | 550(nto)$a  | S; Delete ('.', At Ending)
+
+561I1 | 561(nto)I1  | ' '
+561I2 | 561(nto)I2  | SetIndFrom245np
+561$a | 561(nto)$a  | S; Delete ('.', At Ending)
+
+567I1 | 500I1  | ' '
+567I2 | 500I2  | ' '
+567$a | 500$a  | If (Exists(%500$a)) Then + '. - ' + S Else + S; Delete ('.', At Ending)
+
+#if (remove_563 = '0')
+583I1 | 563(new)I1     | ' '
+583I2 | 563(newest)I2  | SetIndFrom245np
+583$a | 563(newest)$a  | S
+583$c | 563(newest)$a  | + ' ' + S
+#endif
+
+586I1 | 501(new)I1     | ' '
+586I2 | 501(newest)I2  | SetIndFrom245np
+586$a | 501(newest)$a  | S
+
+588I1 | 530I1       | ' '
+588I2 | 530I2 	    | ' '
+588$a | 530$a	    | S; Delete ('.', At Ending)
+
+600I1 | 600I1       | NameCheck
+600I2 | 600I2       | ' '
+600$a | 600$a       | S; Delete (',', At Ending); If (RegFind(' [a-zA-Z]\\.\$') < 0) Delete ('.', At Ending); Replace (', ' By '$h')
+600$c | 600$f       | S; Delete ('.', At Ending); Delete (',', At Ending)
+600$d | 600$c       | YearOfDeath; Delete (',', At Ending); Delete ('.', At Ending)
+600$j | 600$f       | S; Delete (',', At Ending); Delete ('.', At Ending)
+600$t | 600$t       | S; Delete ('.', At Ending); Delete (',', At Ending)
+600$l | 600$t       | + ', ' + S; Delete (',', At Ending); Delete (';', At Ending); Delete ('.', At Ending)
+600$m | 600$t       | + ', ' + S; Delete (',', At Ending); Delete (';', At Ending); Delete ('.', At Ending)
+600$n | 600(nto)$t  | + ', ' + S; Delete (',', At Ending); Delete (';', At Ending); Delete ('.', At Ending)
+600$o | 600$t       | + '; ' + S; Delete (',', At Ending); Delete (';', At Ending); Delete ('.', At Ending)
+600$p | 600$t       | + ', ' + S; Delete (',', At Ending); Delete (';', At Ending); Delete ('.', At Ending)
+600$r | 600$t       | + ', ' + S; Delete (',', At Ending); Delete (';', At Ending); Delete ('.', At Ending)
+600$s | 600$t       | + '. ' + S; Delete (',', At Ending); Delete (';', At Ending); Delete ('.', At Ending)
+600$x | 600$x       | S; Delete ('.', At Ending)
+600$z | 600$y       | S; Delete ('.', At Ending)
+600$y | 600$z       | S; Delete ('.', At Ending)
+
+610I1 | <G10I1        | If I1='0' Then '2' Else S
+610I2 | <G10I2        | ' '
+610$a | <G10$a        | S; Delete ('.', At Ending); RegReplace('\\s*\\((.*)\\)', '$f\\1')
+610$b | <G10$c        | S; Delete ('.', At Ending)
+610$n | <G10$i        | S; Delete ('(', At Beginning); Delete (':', At Ending)
+610$d | <G10$k        | S; Delete ('(', At Beginning); Delete (':', At Ending)
+610$c | <G10$j        | S; Delete ('.', At Ending); Delete (')', At Ending)
+610$g | <G10$f        | If (D != '') Then D + ', ' + S Else S; Delete (')', At Ending); Delete (',', At Ending); Delete (':', At Ending); Delete ('.', At Ending)
+610$t | <G10$t        | S; Delete ('.', At Ending)
+610$x | <G10$x        | S; Delete ('.', At Ending)
+610$z | <G10$y        | S; Delete ('.', At Ending)
+610$y | <G10$z        | S; Delete ('.', At Ending)
+G10I1 | 610(new)I1    | S
+G10I2 | 610(newest)I2 | S
+G10   | 610(newest)   | S; Replace (':$j' By '$j')
+
+611I1 | <G11I1        | If I1='0' Then '2' Else S
+611I2 | <G11I2        | ' '
+611$a | <G11$a        | S; Delete ('.', At Ending); RegReplace('\\s*\\((.*)\\)', '$f\\1')
+611$e | <G11$c        | S; Delete ('.', At Ending)
+611$n | <G11$i        | S; Delete ('.', At Ending)
+611$d | <G11$k        | S; Delete ('(', At Beginning); Delete (':', At Ending); Delete ('.', At Ending)
+611$c | <G11$j        | S; Delete ('.', At Ending); Delete (')', At Ending)
+611$g | <G11$f        | If (D != '') Then D + ', ' + S Else S; Delete ('.', At Ending)
+611$t | <G11$t        | S; Delete ('.', At Ending)
+611$x | <G11$x        | S; Delete ('.', At Ending)
+611$z | <G11$y        | S; Delete ('.', At Ending)
+611$y | <G11$z        | S; Delete ('.', At Ending)
+G11I1 | 610(new)I1    | S
+G11I2 | 610(newest)I2 | S
+G11   | 610(newest)   | S; Replace (':$j' By '$j')
+
+630I1 | 640I2       | If (I1='0') Then ' ' Else S
+630I2 | 640I1       | ' '
+630$a | 640$a       | S; Replace(' (' By '$p'); Delete (')', At Ending); Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+630$k | 640$s       | If (RegFind('Valikoima') >= 0) Then S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+630$m | 640$f       | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+630$r | 640$m       | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+630$f | 640$p(nso)  | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+630$g | 640$p(nso)  | S; Delete ('(', At Beginning); Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending); Delete (')', At Ending)
+630$n | 640$g       | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+630$p | 640$s       | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+630$s | 640$t       | If (RegFind('(partituuri\b|\c3\a4\c3\a4ni|\c8a\c8ani|stemma)') < 0) Then S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+630$s | 640$q       | If (RegFind('(partituuri\b|\c3\a4\c3\a4ni|\c8a\c8ani|stemma)') >= 0) Then S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+630$o | 640$u       | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+630$l | 640$l       | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+630$x | 640$x       | S; Delete ('.', At Ending)
+630$z | 640$y       | S; Delete ('.', At Ending)
+630$y | 640$z       | S; Delete ('.', At Ending)
+//numeroiden lajitteluosakentät (n -> i, j, k ja g -> o, v, w) - mahdotonta
+
+648I1 | 652I1       | ' '
+648I2 | 652I2       | ' '
+648$a | 652$a       | S
+648$v | 652$b       | S
+648$x | 652$x       | S
+648$y | 652$z       | S
+648$z | 652$y       | S
+
+650I1 | <G50I1      | ' '
+650I2 | <G50I2      | If (I2='0') Or (I2='2') Or (I2='7') Then S Else '4'
+650$a | <G50$a      | S; Delete ('.', At Ending)
+650$b | <G50$b      | S; Delete ('.', At Ending)
+650$x | <G50$b      | If (I2='2') Then S; Delete ('.', At Ending)
+650$x | <G50(nt)$x(1) | If (I2!='2') Then S; Delete ('.', At Ending)
+650$v | <G50(nt)$x(2) | S; Delete ('.', At Ending)
+650$y | <G50$y      | S; Delete ('.', At Ending)
+650$z | <G50$z      | S; Delete ('.', At Ending)
+650$2 | <G50$2      | S; Delete ('.', At Ending)
+
+653I1 | <G50(new)I1     | ' '
+653I2 | <G50(newest)I2  | '4'
+653$a | <G50(newest)$a  | S; Delete ('.', At Ending)
+
+G50 | 650(new)      | If (I2='0') Then S
+G50 | 652(new)      | If ($2/1-3/='ysa') Then S; Replace ('$y' By '$A'); Replace ('$x' By '$b'); Replace('$z' By '$y'); Replace('$A' By '$z'); Delete ('$2ysa')
+G50 | 653(new)      | If ($2/1-4/='musa') Then S; Replace ('$y' By '$A'); Replace('$z' By '$y'); Replace('$A' By '$z'); Delete ('$2musa')
+G50 | 654(new)      | If ($2/1-8/='kaunokki') Then S; Replace ('$y' By '$A'); Replace('$z' By '$y'); Replace('$A' By '$z'); Delete ('$2kaunokki')
+G50 | 656(new)      | If ($2/1-6/='allars') Then S; Replace ('$y' By '$A'); Replace('$z' By '$y'); Replace('$A' By '$z'); Delete ('$2allars')
+G50 | 657(new)      | If ($2/1-5/='cilla') Then S; Replace ('$y' By '$A'); Replace('$z' By '$y'); Replace('$A' By '$z'); Delete ('$2cilla')
+G50 | 658(new)      | If ($2/1-5/='bella') Then S; Replace ('$y' By '$A'); Replace('$z' By '$y'); Replace('$A' By '$z'); Delete ('$2bella')
+G50 | 660(new)      | If ($2/1-3/='kaa') Then S; Replace ('$y' By '$A'); Replace('$z' By '$y'); Replace('$A' By '$z'); Delete ('$2kaa')
+G50 | 665(new)      | If ($2/1-3/='eks') Then S; Replace ('$y' By '$A'); Replace('$z' By '$y'); Replace('$A' By '$z'); Delete ('$2eks')
+G50 | 670(new)      | If ($2/1-4/='sosa') Then S; Replace ('$y' By '$A'); Replace('$z' By '$y'); Replace('$A' By '$z'); Delete ('$2sosa')
+G50 | 680(new)      | If ($2/1-4/='atla') Then S; Replace ('$y' By '$A'); Replace('$z' By '$y'); Replace('$A' By '$z'); Delete ('$2atla')
+G50 | 685(new)      | If ($2/1-8/='agrifors') Then S; Replace ('$y' By '$A'); Replace('$z' By '$y'); Replace('$A' By '$z'); Delete ('$2agrofors')
+G50 | 690(new)      | If (I2='2') Then S
+G50 | 695(new)      | If (I2='4') Then S; Replace ('$y' By '$A'); Replace('$z' By '$y'); Replace('$A' By '$z')
+
+651I1 | 655(new)I1     | ' '
+651I2 | 655(newest)I2  | ' '
+651   | 655(newest)    | S; Replace('$v' By '$x'); Delete ('.', At Ending); Replace ('$y' By '$A'); Replace('$z' By '$y'); Replace('$A' By '$z'); Delete ('$2ysa')
+
+#if (@655$2 = 'ysa')
+655I1 | 652(new)I1     | ' '
+655I2 | 652(newest)I2  | ' '
+655   | 652(newest)    | S; Replace('$v' By '$x'); Delete ('.', At Ending); Replace ('$y' By '$A'); Replace('$z' By '$y'); Replace('$A' By '$z'); Delete ('$2ysa')
+#endif
+
+700I1 | 700I1       | NameCheck
+700I2 | 700I2       | '1'
+700$a | 700$a       | S; Delete (',', At Ending); If (RegFind('\\s.\\.\$') < 0) Delete ('.', At Ending); Replace (', ' By '$h')
+700$j | 700$f       | S; Delete (',', At Ending); If (RegFind('\\s.\\.\$') < 0) Delete ('.', At Ending)
+700$c | 700$f       | S; Delete (',', At Ending); Delete ('.', At Ending)
+700$d | 700$c       | YearOfDeath; Delete (',', At Ending); Delete ('.', At Ending)
+700$t | 700$t       | S; Delete (',', At Ending); Delete ('.', At Ending)
+700$l | 700$t       | + ', ' + S; Delete (',', At Ending); Delete (';', At Ending); Delete ('.', At Ending)
+700$m | 700$t       | + ', ' + S; Delete (',', At Ending); Delete (';', At Ending); Delete ('.', At Ending)
+700$n | 700(nto)$t  | + ', ' + S; Delete (',', At Ending); Delete (';', At Ending); Delete ('.', At Ending)
+700$o | 700$t       | + '; ' + S; Delete (',', At Ending); Delete (';', At Ending); Delete ('.', At Ending)
+700$p | 700$t       | + ', ' + S; Delete (',', At Ending); Delete (';', At Ending); Delete ('.', At Ending)
+700$r | 700$t       | + ', ' + S; Delete (',', At Ending); Delete (';', At Ending); Delete ('.', At Ending)
+700$s | 700$t       | + '. ' + S; Delete (',', At Ending); Delete (';', At Ending); Delete ('.', At Ending)
+700$e | 700$x       | S; FunctionCode
+
+710I1 | <H10I1        | If (I1 = '0') Then '2' Else S
+710I2 | <H10I2        | '1'
+710$a | <H10$a        | S; Delete ('.', At Ending); Delete (',', At Ending); RegReplace('\\s*\\((.*)\\)', '$f\\1')
+710$b | <H10$c        | S; Delete ('.', At Ending)
+710$n | <H10$i        | S; Delete ('(', At Beginning); Delete (':', At Ending)
+710$d | <H10$k        | S; Delete ('(', At Beginning); Delete (':', At Ending)
+710$c | <H10$j        | S; Delete ('.', At Ending); Delete (')', At Ending)
+710$g | <H10$f        | If (D != '') Then D + ', ' + S Else S; Delete (')', At Ending); Delete (',', At Ending); Delete (':', At Ending); Delete ('.', At Ending)
+710$e | <H10$x        | S; FunctionCode
+H10I1 | 710(new)I1    | S
+H10I2 | 710(newest)I2 | S
+H10   | 710(newest)   | S; Replace (':$j' By '$j')
+
+711I1 | <H11I1        | ' '
+711I2 | <H11I2        | '1'
+711$a | <H11$a        | S; Delete ('.', At Ending); RegReplace('\\s*\\((.*)\\)', '$f\\1')
+711$e | <H11$c        | S; Delete ('.', At Ending)
+711$n | <H11$i        | S; Delete ('(', At Beginning); Delete (':', At Ending)
+711$d | <H11$k        | S; Delete ('(', At Beginning); Delete (':', At Ending)
+711$c | <H11$j        | S; Delete ('.', At Ending); Delete (')', At Ending)
+711$g | <H11$f        | If (D != '') Then D + ', ' + S Else S; Delete (')', At Ending); Delete (',', At Ending); Delete (':', At Ending); Delete ('.', At Ending)
+711$j | <H11$x        | S; FunctionCode
+H11I1 | 711(new)I1    | S
+H11I2 | 711(newest)I2 | S
+H11   | 711(newest)   | S; Replace (':$j' By '$j')
+
+720I1 | 720I1       | ' '
+720I2 | 720I2       | ' '
+720$a | 720$a       | S
+
+#if (Not Exists(@730i))
+730I1 | 745(new)I2       | If (I1='0') Then ' ' Else S
+730I2 | 745(newest)I1    | ' '
+730$a | 745(newest)$a    | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+730$g | 745(newest)$a    | + ' ' + S; Delete ('.', At Ending, Strict); Delete (',', At Ending, Strict); Delete (';', At Ending, Strict)
+730$k | 745(newest)$a    | + '. ' + S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+730$l | 745(newest)$a    | + ', ' + S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+730$m | 745(newest)$a    | + ', ' + S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+730$n | 745(newest)$a    | + '. ' + S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+730$o | 745(newest)$a    | + '; ' + S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+730$p | 745(newest)$a    | + ', ' + S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+730$r | 745(newest)$a    | + ', ' + S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+730$s | 745(newest)$a    | + ', ' + S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+#endif
+
+#if (Exists(@730i))
+730I1 | 745(new)I2       | If (I1='0') Then ' ' Else S
+730I2 | 745(newest)I1    | ' '
+730$a | <XXX$a		 | S
+XXX$a | 745(newest)$a    | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+730$g | 745(newest)$a    | + ' ' + S; Delete ('.', At Ending, Strict); Delete (',', At Ending, Strict); Delete (';', At Ending, Strict)
+730$k | 745(newest)$a    | + '. ' + S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+730$l | 745(newest)$a    | + ', ' + S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+730$m | 745(newest)$a    | + ', ' + S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+730$n | 745(newest)$a    | + '. ' + S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+730$o | 745(newest)$a    | + '; ' + S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+730$p | 745(newest)$a    | + ', ' + S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+730$r | 745(newest)$a    | + ', ' + S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+730$s | 745(newest)$a    | + ', ' + S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+
+730$i | 500(1)$a 	 | If (Exists(%500$a)) Then + '. - ' + S Else + S
+XXX$a | 500(1)$a 	 | + ' ' + S
+#endif
+
+730I1 | 241(new)I2       | If (I1='0') Then ' ' Else S
+730I2 | 241(newest)I1    | SetIndFrom245np
+730$a | 241(newest)$a    | S; Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+
+740I1 | 745(new)I2       | If (I1='0') Then ' ' Else S
+740I2 | 745(newest)I1    | ' '
+740$a | 745(newest)$a    | S; Delete ('.', At Ending)
+740$n | 745(newest)$a    | + : + S; Delete ('.', At Ending)
+740$p | 745(newest)$a    | +, + S; Delete ('.', At Ending)
+
+// 760 -> 760
+760I1 | <H60I1        | ' '
+760I2 | <H60I2        | ' '
+760$a | <H60$a        | If (Not Exists(@760$t)) Then S; Delete('.', At Ending)
+760$t | <H60$a        | S; Replace (' / ' By '$n'); ReplaceOcc ('. ' By '$g', '=1'); ReplaceOcc ('. ' By '$h', '=2'); If (RegFind('$h') < 0) Replace('$g' By '$h'); Delete('.', At Ending)
+760$c | <H60$b        | S; Delete ('(', At Beginning); Delete('.', At Ending); Delete (')', At Ending)
+760$x | <H60$w        | S; Delete('.', At Ending)
+H60I1 | 760(new)I1    | S
+H60I2 | 760(newest)I2 | S
+H60   | 760(newest)   | S
+
+// 762 -> 762
+762I1 | <H62I1        | ' '
+762I2 | <H62I2        | ' '
+762$a | <H62$a        | If (Not Exists(@762$t)) Then S; Delete('.', At Ending)
+762$t | <H62$a        | S; Replace (' / ' By '$n'); ReplaceOcc ('. ' By '$g', '=1'); ReplaceOcc ('. ' By '$h', '=2'); If (RegFind('$h') < 0) Replace('$g' By '$h'); Delete('.', At Ending)
+762$c | <H62$b        | S; Delete ('(', At Beginning); Delete('.', At Ending); Delete (')', At Ending)
+762$x | <H62$w        | S; Delete('.', At Ending)
+H62I1 | 762(new)I1    | S
+H62I2 | 762(newest)I2 | S
+H62   | 762(newest)   | S
+
+// 765 -> 759
+765I1 | <H65I1        | ' '
+765I2 | <H65I2        | ' '
+765$a | <H65$a        | If (Not Exists(@765$t)) Then S; Delete('.', At Ending)
+765$t | <H65$a        | S; Replace (' / ' By '$n'); ReplaceOcc ('. ' By '$g', '=1'); ReplaceOcc ('. ' By '$h', '=2'); If (RegFind('$h') < 0) Replace('$g' By '$h'); Delete('.', At Ending)
+765$c | <H65$b        | S; Delete ('(', At Beginning); Delete('.', At Ending); Delete (')', At Ending)
+765$x | <H65$w        | S; Delete('.', At Ending)
+H65I1 | 759(new)I1    | S
+H65I2 | 759(newest)I2 | S
+H65   | 759(newest)   | S
+
+// 767 -> 769
+767I1 | <H67I1        | ' '
+767I2 | <H67I2        | ' '
+767$a | <H67$a        | If (Not Exists(@767$t)) Then S; Delete('.', At Ending)
+767$t | <H67$a        | S; Replace (' / ' By '$n'); ReplaceOcc ('. ' By '$g', '=1'); ReplaceOcc ('. ' By '$h', '=2'); If (RegFind('$h') < 0) Replace('$g' By '$h'); Delete('.', At Ending)
+767$c | <H67$b        | S; Delete ('(', At Beginning); Delete('.', At Ending); Delete (')', At Ending)
+767$x | <H67$w        | S; Delete('.', At Ending)
+H67I1 | 769(new)I1    | S
+H67I2 | 769(newest)I2 | S
+H67   | 769(newest)   | S
+
+// 770 -> 789
+770I1 | <H70I1        | ' '
+770I2 | <H70I2        | ' '
+770$a | <H70$a        | If (Not Exists(@770$t)) Then S; Delete('.', At Ending)
+770$t | <H70$a        | S; Replace (' / ' By '$n'); ReplaceOcc ('. ' By '$g', '=1'); ReplaceOcc ('. ' By '$h', '=2'); If (RegFind('$h') < 0) Replace('$g' By '$h'); Delete('.', At Ending)
+770$c | <H70$b        | S; Delete ('(', At Beginning); Delete('.', At Ending); Delete (')', At Ending)
+770$x | <H70$w        | S; Delete('.', At Ending)
+H70I1 | 789(new)I1    | S
+H70I2 | 789(newest)I2 | S
+H70   | 789(newest)   | S
+
+// 772 -> 779
+772I1 | <H72I1        | ' '
+772I2 | <H72I2        | ' '
+772$a | <H72$a        | If (Not Exists(@772$t)) Then S; Delete('.', At Ending)
+772$t | <H72$a        | S; Replace (' / ' By '$n'); ReplaceOcc ('. ' By '$g', '=1'); ReplaceOcc ('. ' By '$h', '=2'); If (RegFind('$h') < 0) Replace('$g' By '$h'); Delete('.', At Ending)
+772$c | <H72$b        | S; Delete ('(', At Beginning); Delete('.', At Ending); Delete (')', At Ending)
+772$x | <H72$w        | S; Delete('.', At Ending)
+H72I1 | 779(new)I1    | S
+H72I2 | 779(newest)I2 | S
+H72   | 779(newest)   | S
+
+773I1 | 773I1       | ' '
+773I2 | 773I2       | ' '
+773$7 | 773$7       | S
+773$a | 773$a       | S; Delete ('. -', At Ending)
+773$s | 773$s       | S; Delete ('. -', At Ending)
+773$t | 773$t       | S; Delete ('. -', At Ending)
+773$h | 773$i       | S; Delete ('. -', At Ending)
+773$b | 773$b       | S; Delete ('. -', At Ending)
+773$m | 773$e       | S; Delete ('. -', At Ending)
+773$d | 773$d       | S; Delete ('. -', At Ending)
+773$k | 773$k       | S; Delete ('. -', At Ending)
+773$u | 773$u       | S; Delete ('. -', At Ending)
+773$x | 773$x       | S; Delete ('. -', At Ending)
+773$z | 773$z       | S; Delete ('. -', At Ending)
+773$o | 773$m       | If (RegFind ('ISRC ') >= 0) Then S; Delete ('. -', At Ending)
+773$o | 773$n       | If (RegFind ('ISMN ') >= 0) Then S; Delete ('. -', At Ending)
+773$o | 773$p       | If (RegFind ('NSN ') >= 0) Then S; Delete ('. -', At Ending); Delete (',', At Ending)
+773$g | 773$g       | S; Replace ('$g, ' By '$vg'); Replace (', p. ' By '$vs. '); Replace (', s. ' By '$vs. '); Delete (', ', At Beginning); Delete ('. -', At Ending)
+
+// 776 -> 776
+#if ((@000(1)/08/!='m') Or (Not Exists (@776$z)))
+776I1 | <H76I1        | ' '
+776I2 | <H76I2        | ' '
+776$a | <H76$a        | If (Not Exists(@772$t)) Then S; Delete('.', At Ending)
+776$t | <H76$a        | S; Replace (' / ' By '$n'); ReplaceOcc ('. ' By '$g', '=1'); ReplaceOcc ('. ' By '$h', '=2'); If (RegFind('$h') < 0) Replace('$g' By '$h'); Delete('.', At Ending)
+776$c | <H76$b        | S; Delete ('(', At Beginning); Delete('.', At Ending); Delete (')', At Ending)
+776$x | <H76$w        | S; Delete('.', At Ending)
+H76I1 | 776(new)I1    | S
+H76I2 | 776(newest)I2 | S
+H76   | 776(newest)   | S
+#endif
+
+776$z | 530(new)$a  | (Len('\C3\A4') = 1) Then 'My\c3\b6s' Else 'My\c8os'; // Unicode check hack
+                      S + ' painettuna (ISBN ' + S + ')'
+
+// 780 -> 780
+780I1 | <H80I1        | ' '
+780I2 | <H80I2        | S
+780$a | <H80$a        | If (Not Exists(@780$t)) Then S; Delete('.', At Ending)
+780$t | <H80$a        | S; Replace (' / ' By '$n'); ReplaceOcc ('. ' By '$g', '=1'); ReplaceOcc ('. ' By '$h', '=2'); If (RegFind('$h') < 0) Replace('$g' By '$h'); Delete('.', At Ending)
+780$c | <H80$b        | S; Delete ('(', At Beginning); Delete('.', At Ending); Delete (')', At Ending)
+780$x | <H80$w        | S; Delete('.', At Ending)
+H80I1 | 780(new)I2    | S
+H80I2 | 780(newest)I1 | If (S = '1' Or S = '4' Or S = '5' Or S = '6') Then S Else '0'
+H80   | 780(newest)   | S
+
+// 785 -> 785
+785I1 | <H85I1        | ' '
+785I2 | <H85I2        | S
+785$a | <H85$a        | If (Not Exists(@785$t)) Then S; Delete('.', At Ending)
+785$t | <H85$a        | S; Replace (' / ' By '$n'); ReplaceOcc ('. ' By '$g', '=1'); ReplaceOcc ('. ' By '$h', '=2'); If (RegFind('$h') < 0) Replace('$g' By '$h'); Delete('.', At Ending)
+785$c | <H85$b        | S; Delete ('(', At Beginning); Delete('.', At Ending); Delete (')', At Ending)
+785$x | <H85$w        | S; Delete('.', At Ending)
+H85I1 | 785(new)I2    | S
+H85I2 | 785(newest)I1 | If (S = '1' Or S = '4' Or S = '5' Or S = '6' Or S = '7') Then S Else '0'
+H85   | 785(newest)   | S
+
+#if (Not Exists(@787$i))
+// 787 -> 787
+787I1 | <H87I1        | ' '
+787I2 | <H87I2        | ' '
+787$a | <H87$a        | If (Not Exists(@787$t)) Then S; Delete('.', At Ending)
+787$t | <H87$a        | S; Replace (' / ' By '$n'); ReplaceOcc ('. ' By '$g', '=1'); ReplaceOcc ('. ' By '$h', '=2'); If (RegFind('$h') < 0) Replace('$g' By '$h'); Delete('.', At Ending)
+787$c | <H87$b        | S; Delete ('(', At Beginning); Delete('.', At Ending); Delete (')', At Ending)
+787$x | <H87$w        | S; Delete('.', At Ending)
+#endif
+H87I1 | 787(new)I1    | S
+H87I2 | 787(newest)I2 | S
+H87   | 787(newest)   | S
+
+#if (Exists(@787$i))
+// 787 -> 560
+787I1 | 560I1        | ' '
+787I2 | 560I2        | ' '
+787$t | 560$a        | S; Delete('.', At Ending)
+787$a | 560$d        | S; Delete('.', At Ending)
+787$d | 560$j        | S; RegReplace(',?\\s*(\\d+)', '$k\\1')
+#endif
+
+//Jätetty konvertoimatta - sarjakenttien käyttö poikkeaa FINMARCista
+//810I1 | 810I1       | If (I1=0 Or I1=2) Then '2' Else S
+//810I2 | 810I2       | ' '
+//810$a | 810$a       | S; Delete ('.', At Ending)
+//810$b | 810$c       | S; Delete ('.', At Ending)
+//810$t | 810$n       | S; Delete ('.', At Ending); Delete (';', At Ending); Delete (',', At Ending); Replace (' : ' By '$b') ; Replace (' = ' By '$r')
+//810$n | 810$n       | S; Delete ('.', At Ending); Delete (',', At Ending)
+//810$p | 810$g       | S; Delete ('.', At Ending); Delete (';', At Ending)
+//810$v | 810$v       | S; Delete ('.', At Ending)
+//810$x | 810$w       | S; Delete ('.', At Ending)
+
+//811I1 | 810I1       | If (I1=0 Or I1=2) Then '2' Else S
+//811I2 | 810I2       | ' '
+//811$a | 810$a       | S; Delete ('.', At Ending)
+//811$c | 810$a       | + ' ' + S; Delete (';', At Ending, Strict); Delete ('.', At Ending, Strict); Delete (',', At Ending, Strict)
+//811$d | 810$a       | + ' ' + S; Delete (';', At Ending, Strict); Delete ('.', At Ending, Strict); Delete (',', At Ending, Strict)
+//811$e | 810$a       | + ' ' + S; Delete (';', At Ending, Strict); Delete ('.', At Ending, Strict); Delete (',', At Ending, Strict)
+//811$t | 810$a       | + '. ' + S; Delete (';', At Ending, Strict); Delete ('.', At Ending, Strict); Delete (',', At Ending, Strict)
+//811$n | 810$a       | + ' ' + S; Delete (';', At Ending, Strict); Delete ('.', At Ending, Strict); Delete (',', At Ending, Strict)
+//811$p | 810$a       | + ' ' + S; Delete (';', At Ending, Strict); Delete ('.', At Ending, Strict); Delete (',', At Ending, Strict)
+//811$v | 810$v       | S; Delete (';', At Ending); Delete ('.', At Ending)
+//811$x | 810$w       | S; Delete ('.', At Ending); Delete (';', At Ending)
+
+//830I1 | 840(new)I1       | ' '
+//830I2 | 840(newest)I2    | If (I1='0') Then ' ' Else S
+//830$a | 840(newest)$a    | S; Replace (' / ' By '$n'); Delete ('.', At Ending); Delete (',', At Ending); Delete (';', At Ending)
+//830$g | 840(newest)$a    | + ' ' + S; Delete ('.', At Ending, Strict); Delete (',', At Ending, Strict); Delete (';', At Ending, Strict)
+//830$n | 840(newest)$g    | S; Delete ('.', At Ending, Strict); Delete (',', At Ending, Strict); Delete (';', At Ending, Strict)
+//830$p | 840(newest)$a    | + ', ' + S; Delete ('.', At Ending, Strict); Delete (',', At Ending, Strict); Delete (';', At Ending, Strict)
+//830$t | 840(newest)$a    | + '. ' + S; Delete (';', At Ending, Strict); Delete ('.', At Ending, Strict); Delete (',', At Ending, Strict)
+//830$v | 840(newest)$v    | S; Delete (';', At Ending); Delete ('.', At Ending)
+//830$x | 840(newest)$w    | S; Delete ('.', At Ending); Delete (';', At Ending)
+
+#if (@810$a + @810$x != @490(1)$a + @490(1)$x And @810$a + @810$x != @490(2)$a + @490(2)$x And @810$a + @810$x != @490(3)$a + @490(3)$x)
+810I1 | 540I1       | '1'
+810I2 | 540I2       | SetIndFrom245np
+810$a | 540$a       | S; Delete (';', At Ending); Delete (',', At Ending); Delete ('.', At Ending); Delete ('=', At Ending); Replace ('/' By '$n')
+810$n | 540$g       | S; Delete (';', At Ending); Delete (',', At Ending); Delete ('.', At Ending)
+810$p | 540$h       | S; Delete (';', At Ending); Delete (',', At Ending); Delete ('.', At Ending)
+810$x | 540$w       | S; Delete (';', At Ending); Delete (',', At Ending); Delete ('.', At Ending)
+810$v | 540$v       | S; Delete ('.', At Ending)
+810$v | 540$y       | If (RegFind('\\d') >= 0 And RegFind('.+/\\d+') < 0) Then S; PadZero
+810$v | 540$x       | If (RegFind('\\d') >= 0 And RegFind('(.+)/(\\d+)') >= 0) Then RegMatch(2); PadZero
+810$v | 540$y       | If (RegFind('\\d') >= 0 And RegFind('(.+)/(\\d+)') >= 0) Then RegMatch(1); PadZero
+#endif
+
+#if (@830$a + @830$x != @490(1)$a + @490(1)$x And @830$a + @830$x != @490(2)$a + @490(2)$x And @830$a + @830$x != @490(3)$a + @490(3)$x)
+830I1 | 540I1       | '1'
+830I2 | 540I2       | SetIndFrom245np
+830$a | 540$a       | S; Delete (';', At Ending); Delete (',', At Ending); Delete ('.', At Ending); Delete ('=', At Ending); Replace ('/' By '$n')
+830$n | 540$g       | S; Delete (';', At Ending); Delete (',', At Ending); Delete ('.', At Ending)
+830$p | 540$h       | S; Delete (';', At Ending); Delete (',', At Ending); Delete ('.', At Ending)
+830$x | 540$w       | S; Delete (';', At Ending); Delete (',', At Ending); Delete ('.', At Ending)
+830$v | 540$v       | S; Delete ('.', At Ending)
+830$v | 540$y       | If (RegFind('\\d') >= 0 And RegFind('.+/\\d+') < 0) Then S; PadZero
+830$v | 540$x       | If (RegFind('\\d') >= 0 And RegFind('(.+)/(\\d+)') >= 0) Then RegMatch(2); PadZero
+830$v | 540$y       | If (RegFind('\\d') >= 0 And RegFind('(.+)/(\\d+)') >= 0) Then RegMatch(1); PadZero
+#endif
+
+#if (RegFind(@856$i, 'input this URL in a browser') < 0)
+856I1 | 856I1       | If (S = ' ') Then '4' Else S
+856I2 | 856I2       | If (Exists ($3)) Then '2' Else ' '
+856$u | 856$u       | If (RegFind('URN') < 0) Then S
+856$u | 856$g       | If (RegFind('URN') >= 0) Then S
+856$a | 856$a       | S
+856$b | 856$b       | S
+856$c | 856$c       | S
+856$d | 856$d       | S
+856$f | 856$f       | S
+856$h | 856$h       | S
+856$i | 856$i       | S
+856$j | 856$j       | S
+856$k | 856$k       | S
+856$l | 856$l       | S
+856$m | 856$m       | S
+856$n | 856$n       | S
+856$o | 856$o       | S
+856$p | 856$p       | S
+856$q | 856$q       | S
+856$r | 856$r       | S
+856$s | 856$s       | S
+856$t | 856$t       | S
+856$v | 856$v       | S
+856$x | 856$x       | S
+856$z | 856$z       | S
+856$2 | 856$2       | S
+#endif
+
+900I1  | 900I1      | S
+900I2  | 900I2      | S
+900$a  | 900$a      | S; Replace (', ' By '$h'); Delete (',', At Ending)
+900$d  | 900$c      | YearOfDeath; Delete (',', At Ending)
+900$c  | 900$f      | S; Delete (',', At Ending)
+900$t  | 900$t      | S
+900$y  | 900$y      | S
+
+904$a  | 008/24/    | S; Replace ('t' By 'r')
+
+905$a  | 008/23/    | S
+
+910I1  | 910I1      | S
+910I2  | 910I2      | S
+910$a  | 910$a      | S; Delete (',', At Ending); Delete ('.', At Ending)
+910$b  | 910$c      | S; Delete (',', At Ending); Delete ('.', At Ending)
+910$n  | 910$i      | S; Delete (',', At Ending); Delete ('.', At Ending)
+910$d  | 910$k      | S; Delete (',', At Ending); Delete ('.', At Ending)
+910$c  | 910$j      | S; Delete (',', At Ending); Delete ('.', At Ending)
+910$g  | 910$f      | S; Delete ('(', At Beginning); Delete (',', At Ending); Delete ('.', At Ending); Delete (')', At Ending)
+910$t  | 910$t      | S
+910$y  | 910$y      | S
+
+911I1  | 911I1      | ' '
+911I2  | 911I2      | S
+911$a  | 911$a      | S; Delete ('(', At Beginning); Delete (',', At Ending); Delete ('.', At Ending); Delete (')', At Ending); Delete(' :', At Ending)
+911$e  | 911$c      | S; Delete ('(', At Beginning); Delete (',', At Ending); Delete ('.', At Ending); Delete (')', At Ending); Delete(' :', At Ending)
+911$n  | 911$i      | S; Delete ('(', At Beginning); Delete (',', At Ending); Delete ('.', At Ending); Delete (')', At Ending); Delete(' :', At Ending)
+911$d  | 911$k      | S; Delete ('(', At Beginning); Delete (',', At Ending); Delete ('.', At Ending); Delete (')', At Ending); Delete(' :', At Ending)
+911$c  | 911$j      | S; Delete ('(', At Beginning); Delete (',', At Ending); Delete ('.', At Ending); Delete (')', At Ending); Delete(' :', At Ending)
+911$g  | 911$f      | S; Delete ('(', At Beginning); Delete (',', At Ending); Delete ('.', At Ending); Delete (')', At Ending); Delete(' :', At Ending)
+911$t  | 911$t      | S
+911$y  | 911$y      | S
+
+940I1  | 945I1      | S
+940I2  | 945I2      | If (I2=0) Then ' ' Else S
+940$a  | 945$a      | S
+940$y  | 945$y      | S
